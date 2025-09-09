@@ -139,6 +139,7 @@ function createPickerWindow() {
     transparent: false,
     alwaysOnTop: true,
     skipTaskbar: true,
+    type: process.platform === 'darwin' ? 'panel' : undefined,
     fullscreenable: false,
     maximizable: false,
     minimizable: false,
@@ -168,6 +169,9 @@ function createPickerWindow() {
     // Add a small delay to prevent immediate hiding when clicking on picker
     setTimeout(() => {
       if (pickerWindow && !pickerWindow.isFocused()) {
+        if (process.platform === 'darwin') {
+          try { pickerWindow.setVisibleOnAllWorkspaces(false); } catch {}
+        }
         pickerWindow.hide();
       }
     }, 100);
@@ -229,7 +233,10 @@ function openPicker() {
   // Ensure picker is on the correct display
   pickerWindow.setPosition(pickerX, pickerY, false);
   
-  // Ensure picker is always on top and visible
+  // Ensure picker is always on top and visible (including over fullscreen on macOS)
+  if (process.platform === 'darwin') {
+    try { pickerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch {}
+  }
   pickerWindow.setAlwaysOnTop(true, 'screen-saver');
   pickerWindow.show();
   pickerWindow.focus();
