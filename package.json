@@ -1,0 +1,75 @@
+{
+  "name": "xformater",
+  "version": "1.0.0",
+  "description": "Menu bar JSON formatter for macOS",
+  "main": "main.js",
+  "type": "commonjs",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "dist": "electron-builder --mac pkg",
+    "pack": "electron-builder --dir",
+    "dist:mac:arm64": "electron-builder --mac pkg --arm64",
+    "dist:mac:x64": "electron-builder --mac pkg --x64",
+    "dist:mac:both": "electron-builder --mac pkg --x64 --arm64"
+  },
+  "dependencies": {
+    "json5": "^2.2.3",
+    "node-icloud": "^0.0.1",
+    "apple-signin": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "28.3.3",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.lilithgames.xformater",
+    "productName": "XForm",
+    "asar": true,
+    "artifactName": "XForm-${version}-${arch}.pkg",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "pkg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "XForm 需要访问系统事件以实现全局快捷键和自动粘贴功能。",
+        "NSSystemAdministrationUsageDescription": "XForm 需要辅助功能权限以实现粘贴和快捷键功能。"
+      }
+    },
+    "pkg": {
+      "allowAnywhere": true,
+      "installLocation": "/Applications",
+      "overwriteAction": "upgrade"
+    },
+    "dmg": {
+      "backgroundColor": "#ffffff",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 410,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}

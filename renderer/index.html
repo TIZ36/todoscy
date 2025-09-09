@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XFormter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>XFormter</h1>
+        <div class="actions" id="headerActions">
+          <div class="actions-fixed">
+            <label class="wrap-toggle"><input type="checkbox" id="wrap" /> Wrap</label>
+            <select id="indent">
+              <option value="2" selected>2 spaces</option>
+              <option value="4">4 spaces</option>
+              <option value="\t">Tab</option>
+            </select>
+            <button id="recordHotkey">设置呼出历史快捷键</button>
+          </div>
+        </div>
+      </header>
+      <div class="tabs">
+        <button id="tab-todos" class="tab active">Todos</button>
+        <button id="tab-tools" class="tab">工具</button>
+      </div>
+      <main id="main" class="layout-todos">
+        <aside class="sidebar hidden" id="sidebar-tools">
+          <button id="format" class="action">JSON Format</button>
+          <button id="minify" class="action">JSON Minify</button>
+          <button id="b64enc" class="action">Base64 Encode</button>
+          <button id="b64dec" class="action">Base64 Decode</button>
+        </aside>
+        <section class="editor hidden" id="view-editor">
+          <textarea id="input" placeholder="Paste JSON string or object here..."></textarea>
+          <pre id="output" spellcheck="false"></pre>
+        </section>
+        <section class="todos" id="view-todos">
+          <div class="todo-addbar">
+            <input id="todoInput" class="todo-input" placeholder="添加任务" />
+          </div>
+          <ul id="todoList" class="todo-list"></ul>
+          <div class="todo-completed">
+            <div class="todo-completed-header">
+              <button id="toggleCompleted">已完成 <span id="completedCount">0</span></button>
+            </div>
+            <ul id="todoCompletedList" class="todo-list"></ul>
+          </div>
+        </section>
+        <aside class="calendar" id="view-calendar">
+          <div class="cal-header">
+            <button id="calPrev" class="cal-nav-btn">‹</button>
+            <div id="calTitle" class="cal-title"></div>
+            <button id="calNext" class="cal-nav-btn">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </aside>
+      </main>
+      <footer>
+        <span id="status"></span>
+      </footer>
+    </div>
+    
+    <!-- Todo Detail Panel -->
+    <div id="todoDetailPanel" class="todo-detail-panel">
+      <div class="todo-detail-content">
+        <div class="todo-detail-header">
+          <h3>任务详情</h3>
+          <button id="closeDetailPanel" class="close-detail-btn">&times;</button>
+        </div>
+        <div class="todo-detail-body">
+          <div class="detail-field">
+            <label for="detailTitle">标题</label>
+            <input type="text" id="detailTitle" class="detail-input" placeholder="输入任务标题">
+          </div>
+          <div class="detail-field">
+            <label for="detailDescription">详情</label>
+            <textarea id="detailDescription" class="detail-textarea" placeholder="添加任务详情描述"></textarea>
+          </div>
+          <div class="detail-field">
+            <label>创建时间</label>
+            <div id="detailCreatedAt" class="detail-time"></div>
+          </div>
+        </div>
+        <div class="todo-detail-footer">
+          <div class="auto-save-hint">编辑时自动保存</div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="renderer.js"></script>
+  </body>
+</html>
+
+
