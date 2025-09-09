@@ -263,28 +263,119 @@ function openPicker() {
   }
 }
 
-function registerHistoryHotkey(accelerator) {
-  try { globalShortcut.unregister(historyHotkey); } catch {}
-  historyHotkey = accelerator || historyHotkey;
-  const ok = globalShortcut.register(historyHotkey, () => {
-    // Gate by permissions
-    if (!hasAccessibility()) {
-      ensurePermissionsFlow(false);
-      return;
+function normalizeAccelerator(accelerator) {
+  try {
+    if (!accelerator || typeof accelerator !== 'string') return null;
+    const rawParts = accelerator.split('+').map(p => p.trim()).filter(Boolean);
+    if (rawParts.length === 0) return null;
+    const modifierOrder = ['CommandOrControl', 'Command', 'Ctrl', 'Alt', 'Shift'];
+    const modifierMap = {
+      command: 'Command', cmd: 'Command',
+      control: 'Ctrl', ctrl: 'Ctrl',
+      option: 'Alt', alt: 'Alt',
+      shift: 'Shift',
+      super: 'Command',
+      meta: 'Command',
+      cmdorctrl: 'CommandOrControl'
+    };
+    const modifiersSet = new Set();
+    let key = null;
+    for (const part of rawParts) {
+      const lower = part.toLowerCase();
+      if (modifierMap[lower]) {
+        const mapped = modifierMap[lower];
+        if (mapped === 'CommandOrControl') {
+          modifiersSet.delete('Command');
+          modifiersSet.delete('Ctrl');
+          modifiersSet.add('CommandOrControl');
+        } else {
+          if (!modifiersSet.has('CommandOrControl')) {
+            modifiersSet.add(mapped);
+          }
+        }
+      } else if (!key) {
+        key = part.length === 1 ? part.toUpperCase() : part;
+      }
     }
-    openPicker();
-  });
-  if (!ok) {
-    // fallback
-    historyHotkey = 'CmdOrCtrl+Shift+H';
-    globalShortcut.register(historyHotkey, () => {
+    if (!key) return null;
+    const modifiers = Array.from(modifiersSet).sort((a, b) => modifierOrder.indexOf(a) - modifierOrder.indexOf(b));
+    return modifiers.length ? `${modifiers.join('+')}+${key}` : key;
+  } catch {
+    return null;
+  }
+}
+
+function registerHistoryHotkey(accelerator) {
+  const normalized = normalizeAccelerator(accelerator || historyHotkey);
+  if (!normalized) {
+    dialog.showMessageBox({
+      type: 'error',
+      message: '无效的快捷键',
+      detail: `快捷键格式不正确：${accelerator || historyHotkey}\n示例：CmdOrCtrl+Shift+H、Ctrl+Alt+J、Command+H`,
+      buttons: ['好的']
+    });
+    return;
+  }
+  // If unchanged, just ensure it's registered
+  if (normalized === historyHotkey) {
+    if (!globalShortcut.isRegistered(historyHotkey)) {
+      try {
+        globalShortcut.register(historyHotkey, () => {
+          if (!hasAccessibility()) {
+            ensurePermissionsFlow(false);
+            return;
+          }
+          openPicker();
+        });
+      } catch (e) {
+        console.error('Failed to (re)register existing hotkey:', e.message);
+      }
+    }
+    saveConfig();
+    return;
+  }
+
+  const previousHotkey = historyHotkey;
+  let ok = false;
+  try {
+    // Unregister previous only after we know new is valid
+    try { if (previousHotkey) globalShortcut.unregister(previousHotkey); } catch {}
+    ok = globalShortcut.register(normalized, () => {
+      // Gate by permissions
       if (!hasAccessibility()) {
         ensurePermissionsFlow(false);
         return;
       }
       openPicker();
     });
+  } catch (e) {
+    console.error('Failed to register hotkey:', e.message);
+    ok = false;
   }
+  if (!ok) {
+    // Restore previous hotkey if registration failed
+    try {
+      if (previousHotkey) {
+        globalShortcut.register(previousHotkey, () => {
+          if (!hasAccessibility()) {
+            ensurePermissionsFlow(false);
+            return;
+          }
+          openPicker();
+        });
+      }
+    } catch (e) {
+      console.error('Failed to restore previous hotkey:', e.message);
+    }
+    dialog.showMessageBox({
+      type: 'error',
+      message: '注册快捷键失败',
+      detail: `无法注册：${normalized}\n请尝试其他组合（例如 CmdOrCtrl+Shift+H）`,
+      buttons: ['好的']
+    });
+    return;
+  }
+  historyHotkey = normalized;
   saveConfig();
 }
 
@@ -470,9 +561,12 @@ ipcMain.on('picker-refresh', (event) => {
 ipcMain.handle('get-history-hotkey', () => historyHotkey);
 
 ipcMain.on('set-history-hotkey', (event, accel) => {
-  if (typeof accel === 'string' && accel.length > 0) {
+  if (typeof accel !== 'string' || accel.length === 0) return;
+  // Deduplicate burst submissions from renderer by debouncing
+  if (ipcMain._setHotkeyTimer) clearTimeout(ipcMain._setHotkeyTimer);
+  ipcMain._setHotkeyTimer = setTimeout(() => {
     registerHistoryHotkey(accel);
-  }
+  }, 50);
 });
 
 

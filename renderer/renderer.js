@@ -148,39 +148,80 @@ if (b64DecBtn) {
 // Hotkey recording
 let isRecordingHotkey = false;
 
+function isModifierKey(key) {
+  return key === 'Meta' || key === 'Control' || key === 'Alt' || key === 'Shift';
+}
+
+function normalizeKeyName(key) {
+  if (!key) return '';
+  if (key === ' ') return 'Space';
+  const specialMap = {
+    Enter: 'Enter',
+    Escape: 'Esc',
+    Backspace: 'Backspace',
+    Delete: 'Delete',
+    Tab: 'Tab',
+    Home: 'Home',
+    End: 'End',
+    PageUp: 'PageUp',
+    PageDown: 'PageDown',
+    ArrowUp: 'Up',
+    ArrowDown: 'Down',
+    ArrowLeft: 'Left',
+    ArrowRight: 'Right'
+  };
+  if (specialMap[key]) return specialMap[key];
+  if (key.length === 1) return key.toUpperCase();
+  return key;
+}
+
 function startHotkeyRecording() {
   if (isRecordingHotkey) return;
-  
+
   isRecordingHotkey = true;
-  recordHotkeyBtn.textContent = 'Press any key combination...';
+  recordHotkeyBtn.textContent = '按下组合键...';
   recordHotkeyBtn.style.backgroundColor = '#ff6b6b';
-  
+
+  let captured = false;
+
   const handleKeyDown = (e) => {
+    if (captured) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     const modifiers = [];
     if (e.metaKey) modifiers.push('Cmd');
     if (e.ctrlKey) modifiers.push('Ctrl');
     if (e.altKey) modifiers.push('Alt');
     if (e.shiftKey) modifiers.push('Shift');
-    
-    const key = e.key === ' ' ? 'Space' : e.key;
+
+    const keyRaw = e.key;
+    // 忽略只有修饰键的按下，等待实际键位
+    if (isModifierKey(keyRaw)) {
+      recordHotkeyBtn.textContent = `按下组合键... (${modifiers.join('+')})`;
+      return;
+    }
+
+    const key = normalizeKeyName(keyRaw);
+    if (!key) return;
+
     const accelerator = [...modifiers, key].join('+');
-    
+
+    // Stop listening immediately to avoid duplicate capture
+    captured = true;
+    isRecordingHotkey = false;
+    document.removeEventListener('keydown', handleKeyDown);
+
     // Send to main process
     window.xformat.setHistoryHotkey(accelerator);
-    
+
     // Update UI
     recordHotkeyBtn.textContent = `Hotkey: ${accelerator}`;
     recordHotkeyBtn.style.backgroundColor = '#51cf66';
-    
-    isRecordingHotkey = false;
-    document.removeEventListener('keydown', handleKeyDown);
   };
-  
+
   document.addEventListener('keydown', handleKeyDown);
-  
+
   // Cancel after 10 seconds
   setTimeout(() => {
     if (isRecordingHotkey) {
