@@ -3,6 +3,14 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 
+// Logging controls: reduce noisy logs by default; enable verbose with env var
+const isDevBuild = !app.isPackaged;
+const LOG_VERBOSE = process.env.XFORM_LOG_VERBOSE === '1';
+const __originalConsoleLog = console.log.bind(console);
+const __originalConsoleInfo = console.info.bind(console);
+console.log = (...args) => { if (LOG_VERBOSE) { __originalConsoleLog(...args); } };
+console.info = (...args) => { if (LOG_VERBOSE) { __originalConsoleInfo(...args); } };
+
 let tray = null;
 let mainWindow = null;
 let pickerWindow = null;
@@ -129,7 +137,7 @@ function createTray() {
 
 function createPickerWindow() {
   if (pickerWindow) return;
-  console.log('Creating picker window...');
+  console.info('Creating picker window...');
   pickerWindow = new BrowserWindow({
     width: 320,
     height: 400,
@@ -154,15 +162,15 @@ function createPickerWindow() {
   });
   
   const pickerPath = path.join(__dirname, 'renderer/picker.html');
-  console.log('Loading picker from:', pickerPath);
+  console.info('Loading picker from:', pickerPath);
   pickerWindow.loadFile(pickerPath);
   
   pickerWindow.webContents.on('did-finish-load', () => {
-    console.log('Picker window loaded successfully');
+    console.info('Picker window loaded successfully');
   });
   
   pickerWindow.webContents.on('console-message', (event, level, message) => {
-    console.log('Picker console:', message);
+    console.info('Picker console:', message);
   });
   
   pickerWindow.on('blur', () => {
@@ -182,15 +190,15 @@ function openPicker() {
   if (!pickerWindow) createPickerWindow();
   // Ensure we include the latest clipboard content once
   updateHistoryFromClipboard();
-  console.log('Opening picker with history:', clipboardHistory.length, 'items');
-  console.log('History contents:', clipboardHistory.map(s => s.slice(0, 20)));
+  console.info('Opening picker with history:', clipboardHistory.length, 'items');
+  if (LOG_VERBOSE) console.log('History contents:', clipboardHistory.map(s => s.slice(0, 20)));
   
   // Get cursor position and find the correct display
   const { x, y } = screen.getCursorScreenPoint();
   const displays = screen.getAllDisplays();
   
-  console.log('Cursor position:', { x, y });
-  console.log('Available displays:', displays.map(d => ({
+  if (LOG_VERBOSE) console.log('Cursor position:', { x, y });
+  if (LOG_VERBOSE) console.log('Available displays:', displays.map(d => ({
     id: d.id,
     bounds: d.bounds,
     workArea: d.workArea,
@@ -204,7 +212,7 @@ function openPicker() {
     if (x >= displayX && x < displayX + displayWidth && 
         y >= displayY && y < displayY + displayHeight) {
       targetDisplay = display;
-      console.log('Target display found:', { id: display.id, bounds: display.bounds, isPrimary: display.primary });
+      if (LOG_VERBOSE) console.log('Target display found:', { id: display.id, bounds: display.bounds, isPrimary: display.primary });
       break;
     }
   }
@@ -244,26 +252,26 @@ function openPicker() {
   
   // Wait for the window to be ready before sending data
   const sendData = () => {
-    console.log('Sending history data:', clipboardHistory);
+    if (LOG_VERBOSE) console.log('Sending history data:', clipboardHistory);
     try {
       if (pickerWindow && !pickerWindow.isDestroyed()) {
         pickerWindow.webContents.send('history-data', clipboardHistory);
-        console.log('Data sent successfully');
+        if (LOG_VERBOSE) console.log('Data sent successfully');
       }
     } catch (err) {
-      console.log('Send error:', err.message);
+      if (LOG_VERBOSE) console.log('Send error:', err.message);
     }
   };
   
   // Send immediately if ready, otherwise wait
   if (pickerWindow.webContents.isLoading()) {
-    console.log('Window is loading, waiting...');
+    if (LOG_VERBOSE) console.log('Window is loading, waiting...');
     pickerWindow.webContents.once('did-finish-load', () => {
-      console.log('Window loaded, sending data...');
+      if (LOG_VERBOSE) console.log('Window loaded, sending data...');
       setTimeout(sendData, 100);
     });
   } else {
-    console.log('Window ready, sending data immediately...');
+    if (LOG_VERBOSE) console.log('Window ready, sending data immediately...');
     sendData();
     // Also send with delay as backup
     setTimeout(sendData, 200);
@@ -396,22 +404,22 @@ function updateHistoryFromClipboard() {
   let txt;
   try {
     txt = clipboard.readText();
-    console.log('Clipboard read:', txt ? `"${txt.slice(0, 50)}..."` : 'empty');
+    if (LOG_VERBOSE) console.log('Clipboard read:', txt ? `"${txt.slice(0, 50)}..."` : 'empty');
   } catch (err) {
-    console.log('Clipboard read error:', err.message);
+    if (LOG_VERBOSE) console.log('Clipboard read error:', err.message);
     return;
   }
   if (!txt || !txt.trim()) return; // Filter out empty strings
   if (txt === lastClipboardText) return;
   lastClipboardText = txt;
-  console.log('Adding to history:', txt.slice(0, 30));
+  if (LOG_VERBOSE) console.log('Adding to history:', txt.slice(0, 30));
   const existingIndex = clipboardHistory.findIndex((t) => t === txt);
   if (existingIndex !== -1) {
     clipboardHistory.splice(existingIndex, 1);
   }
   clipboardHistory.unshift(txt);
   if (clipboardHistory.length > 10) clipboardHistory.length = 10;
-  console.log('History length:', clipboardHistory.length);
+  if (LOG_VERBOSE) console.log('History length:', clipboardHistory.length);
 }
 
 function performPaste(text, isInternalPaste = false) {
@@ -538,6 +546,21 @@ app.on('activate', () => {
   if (mainWindow) {
     mainWindow.show();
   }
+});
+
+// Cleanup logs and shortcuts on quit
+function cleanupBeforeQuit() {
+  try { globalShortcut.unregisterAll(); } catch {}
+  // Clear terminal output (best-effort, dev only)
+  try { if (process.stdout && process.stdout.write) process.stdout.write('\x1Bc'); } catch {}
+}
+
+app.on('before-quit', () => {
+  cleanupBeforeQuit();
+});
+
+app.on('quit', () => {
+  cleanupBeforeQuit();
 });
 
 // IPC for picker select and config
