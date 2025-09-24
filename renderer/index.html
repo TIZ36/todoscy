@@ -32,6 +32,7 @@
           <button id="minify" class="action">JSON Minify</button>
           <button id="b64enc" class="action">Base64 Encode</button>
           <button id="b64dec" class="action">Base64 Decode</button>
+          <button id="detectKey" class="action">私钥鉴定</button>
         </aside>
         <section class="editor hidden" id="view-editor">
           <textarea id="input" placeholder="Paste JSON string or object here..."></textarea>
@@ -42,9 +43,15 @@
             <input id="todoInput" class="todo-input" placeholder="添加任务" />
           </div>
           <ul id="todoList" class="todo-list"></ul>
+          <div class="todo-section-processing">
+            <div class="todo-section-processing-header">
+              <button id="toggleProcessing"><span id="processingText">进行中</span> <span id="processingCount">0</span></button>
+            </div>
+            <ul id="todoProcessingList" class="todo-list"></ul>
+          </div>
           <div class="todo-completed">
             <div class="todo-completed-header">
-              <button id="toggleCompleted">已完成 <span id="completedCount">0</span></button>
+              <button id="toggleCompleted"><span id="completedText">已完成</span> <span id="completedCount">0</span></button>
             </div>
             <ul id="todoCompletedList" class="todo-list"></ul>
           </div>
