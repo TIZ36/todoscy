@@ -25,9 +25,9 @@
   },
   "build": {
     "appId": "com.lilithgames.xformater",
-    "productName": "XForm",
+    "productName": "Pinko",
     "asar": true,
-    "artifactName": "XForm-${version}-${arch}.pkg",
+    "artifactName": "Pinko-${version}-${arch}.pkg",
     "files": [
       "main.js",
       "preload.js",
@@ -41,8 +41,8 @@
       "category": "public.app-category.developer-tools",
       "darkModeSupport": true,
       "extendInfo": {
-        "NSAppleEventsUsageDescription": "XForm 需要访问系统事件以实现全局快捷键和自动粘贴功能。",
-        "NSSystemAdministrationUsageDescription": "XForm 需要辅助功能权限以实现粘贴和快捷键功能。"
+        "NSAppleEventsUsageDescription": "Pinko 需要访问系统事件以实现全局快捷键和自动粘贴功能。",
+        "NSSystemAdministrationUsageDescription": "Pinko 需要辅助功能权限以实现粘贴和快捷键功能。"
       }
     },
     "pkg": {

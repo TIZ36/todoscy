@@ -46,9 +46,16 @@ function saveConfig() {
 }
 
 function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+  const { x: displayX, y: displayY } = primaryDisplay.workArea;
+  
+  const windowWidth = Math.round(screenWidth * 0.8);
+  const windowHeight = Math.round(screenHeight * 0.8);
+  
   mainWindow = new BrowserWindow({
-    width: 720,
-    height: 600,
+    width: windowWidth,
+    height: windowHeight,
     show: false,
     frame: false,
     resizable: true,
@@ -66,19 +73,51 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
   
-  // Center window on the primary display
+  // Center window on the primary display (initial load)
   mainWindow.once('ready-to-show', () => {
-    const { screen } = require('electron');
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.workAreaSize;
-    const { x, y } = primaryDisplay.workArea;
+    // 获取鼠标位置并找到鼠标所在的屏幕
+    const { x: cursorX, y: cursorY } = screen.getCursorScreenPoint();
+    const displays = screen.getAllDisplays();
     
-    const windowBounds = mainWindow.getBounds();
-    const centerX = x + (width - windowBounds.width) / 2;
-    const centerY = y + (height - windowBounds.height) / 2;
+    // 找到包含鼠标的显示器
+    let targetDisplay = displays[0]; // 默认使用第一个显示器
+    for (const display of displays) {
+      const { x: displayX, y: displayY, width: displayWidth, height: displayHeight } = display.bounds;
+      if (cursorX >= displayX && cursorX < displayX + displayWidth && 
+          cursorY >= displayY && cursorY < displayY + displayHeight) {
+        targetDisplay = display;
+        break;
+      }
+    }
+    
+    // 如果没找到，使用最近的显示器
+    if (!targetDisplay || targetDisplay === displays[0]) {
+      targetDisplay = screen.getDisplayNearestPoint({ x: cursorX, y: cursorY });
+    }
+    
+    // 使用目标显示器的可用工作区域
+    const { width: targetScreenWidth, height: targetScreenHeight } = targetDisplay.workAreaSize;
+    const { x: targetDisplayX, y: targetDisplayY } = targetDisplay.workArea;
+    
+    // 重新计算窗口大小和位置
+    const targetWindowWidth = Math.round(targetScreenWidth * 0.8);
+    const targetWindowHeight = Math.round(targetScreenHeight * 0.8);
+    
+    mainWindow.setSize(targetWindowWidth, targetWindowHeight);
+    
+    // 在目标屏幕上居中显示窗口
+    const centerX = targetDisplayX + (targetScreenWidth - targetWindowWidth) / 2;
+    const centerY = targetDisplayY + (targetScreenHeight - targetWindowHeight) / 2;
     
     mainWindow.setPosition(Math.round(centerX), Math.round(centerY));
     mainWindow.show();
+  });
+
+  mainWindow.on('show', () => {
+    // When window is shown, send message to renderer to navigate to today
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('navigate-to-today');
+    }
   });
 
   mainWindow.on('blur', () => {
@@ -97,9 +136,44 @@ function toggleWindow() {
   if (mainWindow.isVisible()) {
     mainWindow.hide();
   } else {
-    positionWindowUnderTray();
+    // 获取鼠标位置并找到鼠标所在的屏幕
+    const { x: cursorX, y: cursorY } = screen.getCursorScreenPoint();
+    const displays = screen.getAllDisplays();
+    
+    // 找到包含鼠标的显示器
+    let targetDisplay = displays[0]; // 默认使用第一个显示器
+    for (const display of displays) {
+      const { x: displayX, y: displayY, width: displayWidth, height: displayHeight } = display.bounds;
+      if (cursorX >= displayX && cursorX < displayX + displayWidth && 
+          cursorY >= displayY && cursorY < displayY + displayHeight) {
+        targetDisplay = display;
+        break;
+      }
+    }
+    
+    // 如果没找到，使用最近的显示器
+    if (!targetDisplay || targetDisplay === displays[0]) {
+      targetDisplay = screen.getDisplayNearestPoint({ x: cursorX, y: cursorY });
+    }
+    
+    // 使用目标显示器的可用工作区域（排除 dock、菜单栏等）
+    const { width: screenWidth, height: screenHeight } = targetDisplay.workAreaSize;
+    const { x: displayX, y: displayY } = targetDisplay.workArea;
+    
+    // 计算窗口大小（屏幕的80%）
+    const windowWidth = Math.round(screenWidth * 0.8);
+    const windowHeight = Math.round(screenHeight * 0.8);
+    
+    mainWindow.setSize(windowWidth, windowHeight);
+    
+    // 在目标屏幕上居中显示窗口
+    const centerX = displayX + (screenWidth - windowWidth) / 2;
+    const centerY = displayY + (screenHeight - windowHeight) / 2;
+    
+    mainWindow.setPosition(Math.round(centerX), Math.round(centerY));
     mainWindow.show();
     mainWindow.focus();
+    // 注意：mainWindow.on('show') 事件会自动发送 'navigate-to-today' 消息，触发输入框聚焦
   }
 }
 
@@ -119,7 +193,7 @@ function createTray() {
   if (!icon) {
     tray.setTitle('{}');
   }
-  tray.setToolTip('XForm - JSON Formatter');
+  tray.setToolTip('Pinko - JSON Formatter');
   tray.on('click', toggleWindow);
 
   const contextMenu = Menu.buildFromTemplate([
@@ -129,7 +203,6 @@ function createTray() {
     { type: 'separator' },
     { label: 'Clipboard History', click: () => openPicker() },
     { type: 'separator' },
-    { label: 'Format Clipboard JSON', click: () => mainWindow.webContents.send('format-clipboard') },
     { label: 'Quit', role: 'quit' }
   ]);
   tray.setContextMenu(contextMenu);
@@ -451,7 +524,7 @@ function performPaste(text, isInternalPaste = false) {
           dialog.showMessageBox({
             type: 'warning',
             message: '粘贴时发生未知错误',
-            detail: `请检查“系统设置 > 隐私与安全 > 自动化”，确保 XForm 可以控制“系统事件(System Events)”。\n\n信息: ${stderr}`,
+            detail: `请检查"系统设置 > 隐私与安全 > 自动化"，确保 Pinko 可以控制"系统事件(System Events)"。\n\n信息: ${stderr}`,
             buttons: ['好的']
           });
         }
@@ -510,7 +583,7 @@ function ensurePermissionsFlow(fromMenu) {
   dialog.showMessageBox({
     type: 'warning',
     message: '需要启用辅助功能权限',
-    detail: '为实现全局快捷键呼出选择器并自动粘贴，需要在"系统设置 > 隐私与安全 > 辅助功能"中勾选 XForm。同时在"自动化"中允许控制"系统事件"。',
+    detail: '为实现全局快捷键呼出选择器并自动粘贴，需要在"系统设置 > 隐私与安全 > 辅助功能"中勾选 Pinko。同时在"自动化"中允许控制"系统事件"。',
     buttons: ['前往设置', '取消']
   }).then((res) => {
     if (res.response === 0) {
@@ -519,7 +592,7 @@ function ensurePermissionsFlow(fromMenu) {
   });
 }
 
-app.setName('XForm');
+app.setName('Pinko');
 app.dock && app.dock.hide();
 
 app.whenReady().then(() => {
@@ -544,6 +617,40 @@ app.on('window-all-closed', (e) => {
 
 app.on('activate', () => {
   if (mainWindow) {
+    // 获取鼠标位置并找到鼠标所在的屏幕
+    const { x: cursorX, y: cursorY } = screen.getCursorScreenPoint();
+    const displays = screen.getAllDisplays();
+    
+    // 找到包含鼠标的显示器
+    let targetDisplay = displays[0]; // 默认使用第一个显示器
+    for (const display of displays) {
+      const { x: displayX, y: displayY, width: displayWidth, height: displayHeight } = display.bounds;
+      if (cursorX >= displayX && cursorX < displayX + displayWidth && 
+          cursorY >= displayY && cursorY < displayY + displayHeight) {
+        targetDisplay = display;
+        break;
+      }
+    }
+    
+    // 如果没找到，使用最近的显示器
+    if (!targetDisplay || targetDisplay === displays[0]) {
+      targetDisplay = screen.getDisplayNearestPoint({ x: cursorX, y: cursorY });
+    }
+    
+    // 使用目标显示器的可用工作区域
+    const { width: screenWidth, height: screenHeight } = targetDisplay.workAreaSize;
+    const { x: displayX, y: displayY } = targetDisplay.workArea;
+    
+    const windowWidth = Math.round(screenWidth * 0.8);
+    const windowHeight = Math.round(screenHeight * 0.8);
+    
+    mainWindow.setSize(windowWidth, windowHeight);
+    
+    // 在目标屏幕上居中显示窗口
+    const centerX = displayX + (screenWidth - windowWidth) / 2;
+    const centerY = displayY + (screenHeight - windowHeight) / 2;
+    
+    mainWindow.setPosition(Math.round(centerX), Math.round(centerY));
     mainWindow.show();
   }
 });
@@ -597,6 +704,12 @@ ipcMain.on('set-history-hotkey', (event, accel) => {
   ipcMain._setHotkeyTimer = setTimeout(() => {
     registerHistoryHotkey(accel);
   }, 50);
+});
+
+ipcMain.on('open-devtools', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.openDevTools();
+  }
 });
 
 

@@ -3,67 +3,172 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>XFormter</title>
+    <title>Pinko</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container">
       <header>
-        <h1>XFormter</h1>
+        <h1>Pinko</h1>
         <div class="actions" id="headerActions">
           <div class="actions-fixed">
-            <label class="wrap-toggle"><input type="checkbox" id="wrap" /> Wrap</label>
-            <select id="indent">
-              <option value="2" selected>2 spaces</option>
-              <option value="4">4 spaces</option>
-              <option value="\t">Tab</option>
-            </select>
             <button id="recordHotkey">设置呼出历史快捷键</button>
+            <button id="openDevTools" class="dev-tools-trigger" title="打开开发者工具 (F12)">开发者工具</button>
+            <button id="toggleCalView" class="cal-view-btn" title="查看任务统计"><i class="fas fa-chart-bar"></i> 统计</button>
+            <button id="importExportBtn" class="cal-view-btn" title="导入/导出运动计划"><i class="fas fa-exchange-alt"></i> 导入/导出</button>
+            <div class="theme-selector-wrapper">
+              <button id="themeSelectorBtn" class="theme-selector-btn" title="切换主题配色">
+                <i class="fas fa-palette"></i>
+                <span class="theme-selector-label">主题</span>
+                <i class="fas fa-chevron-down theme-selector-arrow"></i>
+              </button>
+              <div id="themeSelectorMenu" class="theme-selector-menu hidden">
+                <div class="theme-selector-header">选择主题</div>
+                <div class="theme-options">
+                  <div class="theme-option" data-theme="tokidoki">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #FF1493 0%, #00BFFF 50%, #32CD32 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">Tokidoki</div>
+                      <div class="theme-desc">高饱和度</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                  <div class="theme-option" data-theme="intellij-light">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 50%, #E8E8E8 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">IntelliJ Light</div>
+                      <div class="theme-desc">经典浅色</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                  <div class="theme-option" data-theme="darcula">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #2B2B2B 0%, #3C3F41 50%, #515658 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">Darcula</div>
+                      <div class="theme-desc">经典深色</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                  <div class="theme-option" data-theme="high-contrast">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #000000 0%, #FFFFFF 50%, #000000 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">High Contrast</div>
+                      <div class="theme-desc">高对比度</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                  <div class="theme-option" data-theme="material">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #6200EA 0%, #03DAC6 50%, #FF6D00 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">Material</div>
+                      <div class="theme-desc">Material Design</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                  <div class="theme-option" data-theme="monokai">
+                    <div class="theme-preview">
+                      <div class="theme-preview-color" style="background: linear-gradient(135deg, #272822 0%, #3E3D32 50%, #49483E 100%);"></div>
+                    </div>
+                    <div class="theme-info">
+                      <div class="theme-name">Monokai</div>
+                      <div class="theme-desc">代码风格</div>
+                    </div>
+                    <i class="fas fa-check theme-check"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-date-controls" style="display: inline-flex; align-items: center; gap: 8px; margin-left: 12px;">
+              <label for="mockDateInput" style="font-size: 12px; color: var(--text-secondary);">模拟日期:</label>
+              <input type="date" id="mockDateInput" class="mock-date-input" />
+              <button id="setMockDate" class="btn btn-secondary">设置</button>
+              <button id="clearMockDate" class="btn btn-secondary" style="display: none;">清除</button>
+              <span id="mockDateDisplay" style="font-size: 12px; color: var(--accent-blue); font-weight: 600; display: none;"></span>
+            </div>
           </div>
         </div>
       </header>
-      <div class="tabs">
-        <button id="tab-todos" class="tab active">Todos</button>
-        <button id="tab-tools" class="tab">工具</button>
-      </div>
-      <main id="main" class="layout-todos">
-        <aside class="sidebar hidden" id="sidebar-tools">
-          <button id="format" class="action">JSON Format</button>
-          <button id="minify" class="action">JSON Minify</button>
-          <button id="b64enc" class="action">Base64 Encode</button>
-          <button id="b64dec" class="action">Base64 Decode</button>
-          <button id="detectKey" class="action">私钥鉴定</button>
-        </aside>
-        <section class="editor hidden" id="view-editor">
-          <textarea id="input" placeholder="Paste JSON string or object here..."></textarea>
-          <pre id="output" spellcheck="false"></pre>
-        </section>
-        <section class="todos" id="view-todos">
+      <main id="main" class="layout-calendar-view">
+        <!-- Left Sidebar: Task List (like macOS Calendar sidebar) -->
+        <aside class="sidebar-tasks" id="sidebar-tasks">
           <div class="todo-addbar">
-            <input id="todoInput" class="todo-input" placeholder="添加任务" />
-          </div>
-          <ul id="todoList" class="todo-list"></ul>
-          <div class="todo-section-processing">
-            <div class="todo-section-processing-header">
-              <button id="toggleProcessing"><span id="processingText">进行中</span> <span id="processingCount">0</span></button>
+            <div class="todo-input-wrapper">
+              <button class="todo-category-add-btn" title="添加新归类">+</button>
+              <span class="todo-category-hint" id="todoCategoryHint" title="按Tab键切换任务归类">无归类</span>
+              <input id="todoInput" class="todo-input" placeholder="添加任务" />
             </div>
-            <ul id="todoProcessingList" class="todo-list"></ul>
           </div>
-          <div class="todo-completed">
-            <div class="todo-completed-header">
-              <button id="toggleCompleted"><span id="completedText">已完成</span> <span id="completedCount">0</span></button>
+          <div class="todo-sections">
+            <div class="todo-section" data-section="todo">
+              <div class="todo-section-header" data-section-header="todo">
+                <span class="section-title-wrapper">
+                  <span class="section-toggle-icon">▼</span>
+                  <span class="section-title">待办</span>
+                </span>
+                <span class="section-count" id="todoTasksCount">0</span>
+              </div>
+              <ul id="todoList" class="todo-list"></ul>
             </div>
-            <ul id="todoCompletedList" class="todo-list"></ul>
+            <div class="todo-section" data-section="today">
+              <div class="todo-section-header" data-section-header="today">
+                <span class="section-title-wrapper">
+                  <span class="section-toggle-icon">▼</span>
+                  <span class="section-title">今日任务</span>
+                </span>
+                <span class="section-count" id="todayTasksCount">0</span>
+              </div>
+              <ul id="todoTodayList" class="todo-list"></ul>
+            </div>
+            <div class="todo-section" data-section="planned">
+              <div class="todo-section-header" data-section-header="planned">
+                <span class="section-title-wrapper">
+                  <span class="section-toggle-icon">▼</span>
+                  <span class="section-title">计划任务</span>
+                </span>
+                <span class="section-count" id="plannedTasksCount">0</span>
+              </div>
+              <ul id="todoPlannedList" class="todo-list"></ul>
+            </div>
+          </div>
+        </aside>
+        
+        <!-- Right Side: Large Calendar View -->
+        <section class="calendar-main" id="view-calendar">
+          <div class="cal-header-bar">
+            <div class="cal-header-left">
+              <button id="calToday" class="cal-today-btn">今天</button>
+              <div class="cal-nav-group">
+                <button id="calPrev" class="cal-nav-btn">‹</button>
+                <div id="calTitle" class="cal-title"></div>
+                <button id="calNext" class="cal-nav-btn">›</button>
+              </div>
+            </div>
+            <div id="dateSelectionHint" class="date-selection-hint" style="display: none;"></div>
+          </div>
+          <div class="cal-grid-wrapper">
+            <div class="cal-weekdays">
+              <div class="cal-weekday">周日</div>
+              <div class="cal-weekday">周一</div>
+              <div class="cal-weekday">周二</div>
+              <div class="cal-weekday">周三</div>
+              <div class="cal-weekday">周四</div>
+              <div class="cal-weekday">周五</div>
+              <div class="cal-weekday">周六</div>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
           </div>
         </section>
-        <aside class="calendar" id="view-calendar">
-          <div class="cal-header">
-            <button id="calPrev" class="cal-nav-btn">‹</button>
-            <div id="calTitle" class="cal-title"></div>
-            <button id="calNext" class="cal-nav-btn">›</button>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-        </aside>
       </main>
       <footer>
         <span id="status"></span>
@@ -90,9 +195,128 @@
             <label>创建时间</label>
             <div id="detailCreatedAt" class="detail-time"></div>
           </div>
+          <div class="detail-field">
+            <label>执行周期</label>
+            <div id="detailDateRange" class="detail-time">
+              <span class="no-date-range">未设置</span>
+            </div>
+          </div>
+          <div class="detail-field">
+            <label>任务归类</label>
+            <div id="detailCategoryPicker" class="category-picker">
+              <!-- Categories will be generated by JS -->
+            </div>
+          </div>
+          <div class="detail-field">
+            <label>标记颜色</label>
+            <div id="detailColorPicker" class="color-picker">
+              <!-- Colors will be generated by JS -->
+            </div>
+          </div>
         </div>
         <div class="todo-detail-footer">
           <div class="auto-save-hint">编辑时自动保存</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="debugLogOverlay" class="debug-log-overlay hidden">
+      <div class="debug-log-backdrop"></div>
+      <div class="debug-log-window">
+        <div class="debug-log-header">
+          <span class="debug-log-title">调试日志</span>
+          <div class="debug-log-actions">
+            <button id="debugLogCopy" class="debug-log-action">复制全部</button>
+            <button id="debugLogClear" class="debug-log-action">清空</button>
+            <button id="debugLogClose" class="debug-log-action">关闭</button>
+          </div>
+        </div>
+        <div id="debugLogContent" class="debug-log-content"></div>
+      </div>
+    </div>
+    
+    <!-- 导入/导出模态框 -->
+    <div id="importExportModal" class="modal hidden">
+      <div class="modal-content import-export-modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-exchange-alt"></i> 导入/导出运动计划</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body import-export-body">
+          <div class="import-export-tabs">
+            <button class="import-export-tab active" data-tab="export">
+              <i class="fas fa-download"></i> 导出
+            </button>
+            <button class="import-export-tab" data-tab="import">
+              <i class="fas fa-upload"></i> 导入
+            </button>
+          </div>
+          
+          <!-- 导出标签页 -->
+          <div class="import-export-tab-content active" id="exportTab">
+            <div class="import-export-section">
+              <h4><i class="fas fa-file-code"></i> JSON 数据</h4>
+              <p class="import-export-hint">复制以下JSON数据以备份您的运动计划，或点击下载按钮保存为文件。</p>
+              <div class="json-editor-container">
+                <textarea id="exportJsonText" class="json-editor" readonly></textarea>
+              </div>
+              <div class="import-export-actions">
+                <button id="copyJsonBtn" class="btn btn-primary">
+                  <i class="fas fa-copy"></i> 复制JSON
+                </button>
+                <button id="downloadJsonBtn" class="btn btn-primary">
+                  <i class="fas fa-download"></i> 下载JSON文件
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 导入标签页 -->
+          <div class="import-export-tab-content" id="importTab">
+            <div class="import-export-section">
+              <h4><i class="fas fa-file-upload"></i> 导入JSON数据</h4>
+              <p class="import-export-hint">粘贴JSON数据或选择文件来导入运动计划。导入将替换当前所有数据，请谨慎操作！</p>
+              
+              <div class="import-methods">
+                <div class="import-method">
+                  <label class="import-method-label">
+                    <i class="fas fa-paste"></i> 粘贴JSON文本
+                  </label>
+                  <textarea id="importJsonText" class="json-editor" placeholder="请粘贴JSON数据..."></textarea>
+                </div>
+                
+                <div class="import-divider">
+                  <span>或</span>
+                </div>
+                
+                <div class="import-method">
+                  <label class="import-method-label">
+                    <i class="fas fa-folder-open"></i> 选择文件
+                  </label>
+                  <div class="file-upload-area" id="fileUploadArea">
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                    <div class="file-upload-content">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      <p>点击选择文件或拖拽文件到此处</p>
+                      <span class="file-upload-hint">支持 .json 格式</span>
+                    </div>
+                  </div>
+                  <div id="selectedFileName" class="selected-file-name" style="display: none;"></div>
+                </div>
+              </div>
+              
+              <div class="import-export-actions">
+                <button id="importJsonBtn" class="btn btn-primary" disabled>
+                  <i class="fas fa-upload"></i> 导入数据
+                </button>
+                <button id="clearImportBtn" class="btn btn-secondary">
+                  <i class="fas fa-eraser"></i> 清空
+                </button>
+              </div>
+              
+              <div id="importError" class="import-error" style="display: none;"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
